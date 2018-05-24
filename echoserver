@@ -1,0 +1,37 @@
+#!/usr/bin/env python
+from __future__ import print_function
+from gevent.server import StreamServer
+
+
+# this handler will be run for each incoming connection in a dedicated greenlet
+def echo(socket, address):
+    print('New connection from %s:%s' % address)
+    rfileobj = socket.makefile(mode='rb')
+    while True:
+        line = rfileobj.readline()
+        if not line:
+            print("client disconnected")
+            break
+        if line.strip().lower() == b'quit':
+            print("client quit")
+            break
+        socket.sendall(line)
+    rfileobj.close()
+
+
+def main(args=None):
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-p', help='listening port [(%(default)s]', default=16000, type=int)
+    options = parser.parse_args(args=args)
+    port = options.p
+    server = StreamServer(('0', port), echo)
+    print('Starting echo server on port %d' % port)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print('Ctrl-C pressed. Bailing out...')
+
+
+if __name__ == '__main__':
+    main()
